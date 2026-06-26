@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#C4440A">
+<title>瑕疵品通報</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F3EE;--surface:#FDFCFA;--surface2:#F0EDE6;
+  --border:#DDD9D0;--text:#1C1A16;--muted:#6B6760;--hint:#A09C95;
+  --accent:#C4440A;--accent-light:#FAE8E0;
+  --success:#1A7A4A;--success-light:#E3F5EC;
+  --yellow:#FEF9E7;--yb:#E8C84A;--yt:#7A5C00;
+  --radius:16px;--radius-sm:10px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html{font-size:16px;height:100%}
+body{font-family:"Noto Sans TC",sans-serif;background:var(--bg);color:var(--text);min-height:100%;-webkit-text-size-adjust:100%;overflow-x:hidden}
+
+/* Header */
+.app-header{
+  background:var(--accent);color:#fff;
+  padding:calc(var(--safe-top) + 14px) 20px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.app-header h1{font-size:18px;font-weight:700;letter-spacing:0.02em}
+.app-header span{font-size:11px;opacity:0.65;letter-spacing:0.08em}
+
+/* Body */
+.page-body{padding:20px 16px calc(var(--safe-bottom) + 90px)}
+
+/* Drive bar */
+.drive-bar{
+  background:var(--yellow);border:1px solid var(--yb);
+  border-radius:var(--radius-sm);padding:14px 16px;
+  margin-bottom:16px;display:flex;align-items:center;gap:12px;
+}
+.drive-label{font-size:14px;font-weight:600;color:var(--yt)}
+.drive-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Cards */
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04)}
+.card-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-header h2{font-size:16px;font-weight:700}
+.card-header .sub{font-size:12px;font-weight:400;color:var(--muted);margin-left:4px}
+
+/* Fields */
+.field{margin-bottom:18px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px;letter-spacing:0.02em}
+label .req{color:var(--accent);margin-left:2px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  width:100%;padding:15px 16px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  font-family:"Noto Sans TC",sans-serif;font-size:16px;
+  color:var(--text);outline:none;
+  -webkit-appearance:none;appearance:none;
+  transition:border-color .15s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:var(--surface)}
+textarea{resize:vertical;min-height:100px;line-height:1.7}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%236B6760' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;padding-right:44px;cursor:pointer;
+}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Barcode */
+.barcode-row{display:flex;gap:10px}
+.barcode-row input{flex:1;min-width:0}
+.scan-btn{
+  padding:0 20px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--radius-sm);
+  font-family:"Noto Sans TC",sans-serif;font-size:15px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.scan-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.barcode-msg{
+  font-size:13px;margin-top:8px;padding:11px 14px;
+  border-radius:var(--radius-sm);display:none;line-height:1.5;
+}
+.barcode-msg.ok{background:var(--success-light);color:var(--success)}
+.barcode-msg.err{background:var(--accent-light);color:var(--accent)}
+
+/* Defect type */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.type-card{position:relative}
+.type-card input{position:absolute;opacity:0;width:0;height:0}
+.type-label{
+  display:flex;align-items:center;justify-content:center;
+  padding:16px 12px;border:2px solid var(--border);
+  border-radius:var(--radius-sm);font-size:16px;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .15s;
+  background:var(--bg);text-align:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.type-card input:checked + .type-label{
+  background:var(--accent-light);border-color:var(--accent);color:var(--accent);
+}
+
+/* Media upload */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:var(--radius-sm);
+  padding:32px 20px;text-align:center;cursor:pointer;
+  background:var(--bg);transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.upload-zone:active{background:var(--accent-light);border-color:var(--accent)}
+.upload-zone svg{width:32px;height:32px;stroke:var(--hint);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 10px;display:block}
+.upload-zone p{font-size:15px;color:var(--muted);margin-bottom:4px}
+.upload-zone small{font-size:12px;color:var(--hint)}
+.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.media-thumb{aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;position:relative;background:var(--surface2)}
+.media-thumb img,.media-thumb video{width:100%;height:100%;object-fit:cover;display:block}
+.media-thumb .rm{position:absolute;top:5px;right:5px;width:26px;height:26px;background:rgba(0,0,0,0.65);border:none;border-radius:50%;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.media-thumb .badge{position:absolute;bottom:5px;left:5px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px}
+.media-count{font-size:12px;color:var(--hint);text-align:right;margin-top:6px}
+
+/* Transfer badge */
+.transfer-badge{font-size:11px;font-weight:500;background:var(--accent-light);color:var(--accent);padding:3px 8px;border-radius:5px;margin-left:8px;vertical-align:middle}
+
+/* Submit */
+.submit-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:12px 16px calc(var(--safe-bottom) + 12px);
+  background:var(--surface);border-top:1px solid var(--border);
+  z-index:100;
+}
+.submit-btn{
+  width:100%;padding:17px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--radius-sm);
+  font-family:"Noto Sans TC",sans-serif;font-size:17px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  -webkit-tap-highlight-color:transparent;transition:opacity .15s;
+}
+.submit-btn:disabled{opacity:.45;cursor:not-allowed}
+.progress-wrap{height:4px;background:var(--surface2);border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;width:0%}
+
+/* Error */
+.error-msg{font-size:14px;color:var(--accent);padding:13px 16px;background:var(--accent-light);border-radius:var(--radius-sm);margin-top:12px;display:none;line-height:1.6}
+
+/* Success */
+.success-page{display:none;padding:60px 20px calc(var(--safe-bottom) + 60px);text-align:center;max-width:480px;margin:0 auto}
+.success-ring{width:84px;height:84px;border-radius:50%;background:var(--success-light);margin:0 auto 24px;display:flex;align-items:center;justify-content:center}
+.success-ring svg{width:42px;height:42px;stroke:var(--success);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.success-title{font-size:24px;font-weight:700;margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--muted);margin-bottom:10px}
+.success-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--accent);border-bottom:1px solid;text-decoration:none;padding-bottom:1px;margin:6px 0 28px}
+.success-summary{background:var(--surface);border-radius:var(--radius);padding:18px;text-align:left;font-size:14px;line-height:2;color:var(--muted);margin-bottom:28px}
+.success-summary strong{color:var(--text);font-weight:600}
+.reset-btn{padding:15px 36px;border:2px solid var(--border);background:transparent;border-radius:var(--radius-sm);font-family:"Noto Sans TC",sans-serif;font-size:16px;cursor:pointer;color:var(--muted)}
+
+/* Scan video area */
+#scan-area{display:none;margin-top:12px;border-radius:var(--radius-sm);overflow:hidden;background:#000;position:relative}
+#scan-area video{width:100%;display:block;max-height:260px;object-fit:cover}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:65%;aspect-ratio:3/1;border:2.5px solid #FFD600;border-radius:6px;box-shadow:0 0 0 1000px rgba(0,0,0,0.45)}
+.scan-hint-text{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:13px;color:#fff;opacity:.85}
+.scan-cancel-btn{width:100%;padding:13px;background:#1a1a1a;border:none;font-size:14px;cursor:pointer;font-family:"Noto Sans TC",sans-serif;color:#ccc}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>瑕疵品通報</h1>
+  <span>DEFECT REPORT</span>
+</header>
+
+<div id="form-page">
+<div class="page-body">
+
+  <div class="drive-bar">
+    <svg width="22" height="19" viewBox="0 0 87 78" fill="none"><path d="M29 0L58 0L87 50H58L29 0Z" fill="#1FA463"/><path d="M0 50L14.5 25L44 75H15L0 50Z" fill="#FBBC04"/><path d="M44 75H87L72.5 50H29.5L44 75Z" fill="#4285F4"/></svg>
+    <div>
+      <div class="drive-label">Google Drive 上傳</div>
+      <div class="drive-sub">照片與影片儲存至「瑕疵品通報」資料夾</div>
+    </div>
+  </div>
+
+  <!-- 1. 基本資訊 -->
+  <div class="card">
+    <div class="card-header"><div class="step-num">1</div><h2>基本資訊</h2></div>
+    <div class="row" style="margin-bottom:18px">
+      <div class="field" style="margin:0">
+        <label>門市<span class="req">*</span></label>
+        <select id="store">
+          <option value="">請選擇</option>
+          <!-- ★ 新增店櫃：加一行 <option>代號 店名</option> -->
+          <option>AS62 南西IP店</option>
+          <option>AS70 西門IP店</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label>回報日期<span class="req">*</span></label>
+        <input type="date" id="report-date">
+      </div>
+    </div>
+    <div class="field">
+      <label>負責人員</label>
+      <input type="text" id="staff" placeholder="姓名">
+    </div>
+  </div>
+
+  <!-- 2. 商品條碼 -->
+  <div class="card">
+    <div class="card-header"><div class="step-num">2</div><h2>商品資訊</h2></div>
+    <div class="field">
+      <label>商品條碼<span class="req">*</span></label>
+      <div class="barcode-row">
+        <input type="text" id="barcode" placeholder="輸入條碼數字" inputmode="numeric" oninput="clearBarcodeMsg()">
+        <button class="scan-btn" onclick="startScan()" id="scan-btn">
+          <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="13" y1="8" x2="13" y2="12"/><line x1="16" y1="8" x2="16" y2="16"/><line x1="19" y1="12" x2="19" y2="16"/></svg>
+          掃描
+        </button>
+      </div>
+      <div id="barcode-msg" class="barcode-msg"></div>
+      <input type="file" id="scan-capture" accept="image/*" capture="environment" style="display:none" onchange="handleScanCapture(this)">
+      <div id="scan-area">
+        <video id="scan-video" playsinline autoplay muted></video>
+        <div class="scan-overlay"><div class="scan-frame"></div></div>
+        <div class="scan-hint-text" id="scan-hint">將條碼對準框內</div>
+        <button class="scan-cancel-btn" onclick="stopScan()">取消掃描</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>瑕疵數量（件）<span class="req">*</span></label>
+      <input type="number" id="qty" min="1" value="1" style="width:130px">
+    </div>
+  </div>
+
+  <!-- 3. 瑕疵描述 -->
+  <div class="card">
+    <div class="card-header"><div class="step-num">3</div><h2>瑕疵描述</h2></div>
+    <div class="field">
+      <label>瑕疵類型<span class="req">*</span></label>
+      <div class="type-grid">
+        <div class="type-card">
+          <input type="radio" name="defect-type" id="dt1" value="進貨損壞">
+          <label class="type-label" for="dt1">進貨損壞</label>
+        </div>
+        <div class="type-card">
+          <input type="radio" name="defect-type" id="dt2" value="陳列耗損">
+          <label class="type-label" for="dt2">陳列耗損</label>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>瑕疵說明<span class="req">*</span></label>
+      <textarea id="defect-desc" placeholder="請詳述瑕疵狀況、位置…"></textarea>
+    </div>
+  </div>
+
+  <!-- 4. 照片/影片 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">4</div>
+      <h2>照片 / 影片<span class="sub">至少 1 張</span></h2>
+    </div>
+    <div id="upload-zone" class="upload-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <p>點擊上傳照片或影片</p>
+      <small>照片最多 6 張 · 影片最多 1 支（100MB）</small>
+    </div>
+    <input type="file" id="file-input" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(this.files)">
+    <div class="media-grid" id="media-grid"></div>
+    <div class="media-count" id="media-count"></div>
+  </div>
+
+  <!-- 5. 調撥單號 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">5</div>
+      <h2>調撥單號<span class="transfer-badge">AS08 → 延平倉</span></h2>
+    </div>
+    <div class="field">
+      <label>瑕疵單調撥單號<span class="req">*</span></label>
+      <input type="text" id="transfer-no" placeholder="例：TR-20240513-001" style="font-family:monospace;letter-spacing:0.04em">
+    </div>
+    <div class="field">
+      <label>備註</label>
+      <input type="text" id="transfer-note" placeholder="選填">
+    </div>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+</div>
+
+<div class="submit-bar">
+  <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    提交通報並上傳
+  </button>
+  <div class="progress-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+</div>
+</div>
+
+<!-- 成功頁面 -->
+<div class="success-page" id="success-page">
+  <div class="success-ring">
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <div class="success-title">通報已提交 ✓</div>
+  <div class="success-sub">照片已上傳至 Google Drive</div>
+  <a href="#" id="drive-link" class="success-link" target="_blank">開啟 Google Drive 資料夾 →</a>
+  <div class="success-summary" id="success-summary"></div>
+  <button class="reset-btn" onclick="resetForm()">繼續填寫下一份</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  ★ 設定區：把你的 Apps Script 網址貼在這裡
+// ══════════════════════════════════════════
+var APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+var mediaFiles = [];
+var scanStream = null;
+
+document.getElementById('report-date').value = new Date().toISOString().split('T')[0];
+
+/* ── Barcode ── */
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+
+function clearBarcodeMsg(){
+  var el = document.getElementById('barcode-msg');
+  el.style.display = 'none';
+}
+
+function showBarcodeMsg(msg, ok){
+  var el = document.getElementById('barcode-msg');
+  el.textContent = msg;
+  el.className = 'barcode-msg ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+}
+
+function startScan(){
+  if(isIOS()){
+    document.getElementById('scan-capture').click();
+  } else {
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      document.getElementById('scan-capture').click(); return;
+    }
+    document.getElementById('scan-area').style.display = 'block';
+    document.getElementById('scan-btn').style.display = 'none';
+    document.getElementById('scan-hint').textContent = '載入掃描模組…';
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}})
+    .then(function(stream){
+      scanStream = stream;
+      var v = document.getElementById('scan-video');
+      v.srcObject = stream; v.play();
+      loadZXing(function(err){
+        if(err || !window.ZXing){ showBarcodeMsg('掃描模組載入失敗，請手動輸入', false); stopScan(); return; }
+        document.getElementById('scan-hint').textContent = '將條碼對準黃框內';
+        scanZXing(v);
+      });
+    }).catch(function(){ document.getElementById('scan-capture').click(); });
+  }
+}
+
+function handleScanCapture(input){
+  if(!input.files || !input.files[0]) return;
+  showBarcodeMsg('辨識中，請稍候…', true);
+  var file = input.files[0];
+  loadZXing(function(err){
+    if(err || !window.ZXing){ showBarcodeMsg('辨識模組載入失敗，請手動輸入條碼', false); input.value=''; return; }
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function(){
+      var maxW = 1280;
+      var scale = img.width > maxW ? maxW/img.width : 1;
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      var reader = new window.ZXing.BrowserMultiFormatReader();
+      reader.decodeFromCanvas(canvas).then(function(result){
+        document.getElementById('barcode').value = result.getText();
+        showBarcodeMsg('✓ 條碼辨識成功：' + result.getText(), true);
+        input.value = '';
+      }).catch(function(){
+        showBarcodeMsg('⚠ 無法辨識，請靠近重拍或直接手動輸入條碼數字', false);
+        input.value = '';
+      });
+    };
+    img.onerror = function(){ showBarcodeMsg('圖片載入失敗，請手動輸入', false); input.value=''; };
+    img.src = url;
+  });
+}
+
+function loadZXing(cb){
+  if(window.ZXing){ cb(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js';
+  s.onload = function(){ cb(); };
+  s.onerror = function(){ cb(true); };
+  document.head.appendChild(s);
+}
+
+function stopScan(){
+  if(scanStream){ scanStream.getTracks().forEach(function(t){ t.stop(); }); scanStream = null; }
+  document.getElementById('scan-area').style.display = 'none';
+  document.getElementById('scan-btn').style.display = '';
+}
+
+function scanZXing(v){
+  var canvas = document.createElement('canvas');
+  var reader = new window.ZXing.BrowserMultiFormatReader();
+  function tick(){
+    if(!scanStream) return;
+    if(v.readyState < 2){ setTimeout(tick, 150); return; }
+    canvas.width = v.videoWidth||640; canvas.height = v.videoHeight||480;
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+    reader.decodeFromCanvas(canvas).then(function(r){
+      if(r){ document.getElementById('barcode').value = r.getText(); stopScan(); }
+      else { requestAnimationFrame(tick); }
+    }).catch(function(){ requestAnimationFrame(tick); });
+  }
+  tick();
+}
+
+/* ── Media ── */
+function handleFiles(files){
+  for(var i=0; i<files.length; i++){
+    var f = files[i];
+    var isVid = f.type.startsWith('video/');
+    var isImg = f.type.startsWith('image/');
+    if(!isImg && !isVid) continue;
+    if(isVid && f.size > 100*1024*1024){ showError('影片超過 100MB，請壓縮後重試'); continue; }
+    var imgCount = mediaFiles.filter(function(m){ return m.isImg; }).length;
+    var vidCount = mediaFiles.filter(function(m){ return m.isVid; }).length;
+    if(isImg && imgCount >= 6){ showError('照片最多 6 張'); continue; }
+    if(isVid && vidCount >= 1){ showError('影片最多 1 支'); continue; }
+    (function(file, iv, ii){
+      var r = new FileReader();
+      r.onload = function(e){
+        mediaFiles.push({name:file.name, src:e.target.result, b64:e.target.result.split(',')[1], mime:file.type, isVid:iv, isImg:ii});
+        renderMedia();
+      };
+      r.readAsDataURL(file);
+    })(f, isVid, isImg);
+  }
+}
+
+function handleDrop(e){ e.preventDefault(); handleFiles(e.dataTransfer.files); }
+function removeMedia(i){ mediaFiles.splice(i,1); renderMedia(); }
+
+function renderMedia(){
+  var g = document.getElementById('media-grid'); g.innerHTML = '';
+  mediaFiles.forEach(function(m, i){
+    var d = document.createElement('div'); d.className = 'media-thumb';
+    if(m.isVid){
+      d.innerHTML = '<video src="'+m.src+'" muted playsinline style="width:100%;height:100%;object-fit:cover"></video><span class="badge">影片</span>';
+    } else {
+      d.innerHTML = '<img src="'+m.src+'" alt="照片">';
+    }
+    d.innerHTML += '<button class="rm" onclick="removeMedia('+i+')">✕</button>';
+    g.appendChild(d);
+  });
+  var ic = mediaFiles.filter(function(m){ return m.isImg; }).length;
+  var vc = mediaFiles.filter(function(m){ return m.isVid; }).length;
+  var parts = [];
+  if(ic > 0) parts.push('照片 '+ic+' / 6 張');
+  if(vc > 0) parts.push('影片 '+vc+' / 1 支');
+  document.getElementById('media-count').textContent = parts.join('　');
+  document.getElementById('upload-zone').style.display = (ic>=6 && vc>=1) ? 'none' : '';
+}
+
+/* ── Submit ── */
+function getDefectType(){ var r = document.querySelector('input[name=defect-type]:checked'); return r ? r.value : ''; }
+
+function showError(msg){
+  var el = document.getElementById('error-msg');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+  if(msg) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function setProgress(pct){ document.getElementById('progress-bar').style.width = pct+'%'; }
+
+function handleSubmit(){
+  showError('');
+  var store = document.getElementById('store').value;
+  var barcode = document.getElementById('barcode').value.trim();
+  var qty = parseInt(document.getElementById('qty').value) || 0;
+  var defectType = getDefectType();
+  var desc = document.getElementById('defect-desc').value.trim();
+  var transferNo = document.getElementById('transfer-no').value.trim();
+
+  if(!store) return showError('請選擇門市');
+  if(!barcode) return showError('請輸入或掃描商品條碼');
+  if(qty < 1) return showError('瑕疵數量至少為 1');
+  if(!defectType) return showError('請選擇瑕疵類型');
+  if(!desc) return showError('請填寫瑕疵說明（必填）');
+  if(mediaFiles.length === 0) return showError('請至少上傳一張照片或影片');
+  if(!transferNo) return showError('請填寫調撥單號');
+
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '上傳中…';
+  document.getElementById('progress-wrap').style.display = 'block';
+  setProgress(10);
+
+  var payload = {
+    store:store, date:document.getElementById('report-date').value,
+    staff:document.getElementById('staff').value.trim(),
+    barcode:barcode, qty:qty, defectType:defectType, desc:desc,
+    transferNo:transferNo, transferNote:document.getElementById('transfer-note').value.trim(),
+    files: mediaFiles.map(function(m,i){ return {index:i+1, filename:m.name, mime:m.mime, b64:m.b64}; })
+  };
+
+  setProgress(30);
+
+  fetch(APPS_SCRIPT_URL, { method:'POST', body:JSON.stringify(payload) })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    setProgress(100);
+    if(res.status === 'ok'){
+      setTimeout(function(){ showSuccess(payload, res.folderUrl); }, 400);
+    } else {
+      throw new Error(res.message || '伺服器回傳錯誤');
+    }
+  })
+  .catch(function(err){
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 提交通報並上傳';
+    document.getElementById('progress-wrap').style.display = 'none';
+    showError('提交失敗：' + err.message);
+  });
+}
+
+function showSuccess(p, folderUrl){
+  document.getElementById('drive-link').href = folderUrl || 'https://drive.google.com';
+  var ic = p.files.filter(function(f){ return f.mime.startsWith('image'); }).length;
+  var vc = p.files.filter(function(f){ return f.mime.startsWith('video'); }).length;
+  var mediaStr = (ic>0 ? '照片 '+ic+' 張' : '') + (ic>0&&vc>0 ? '、' : '') + (vc>0 ? '影片 '+vc+' 支' : '');
+  document.getElementById('success-summary').innerHTML =
+    '<strong>門市</strong>　'+p.store+'<br>'+
+    '<strong>日期</strong>　'+p.date+'<br>'+
+    '<strong>條碼</strong>　'+p.barcode+'<br>'+
+    '<strong>數量</strong>　'+p.qty+' 件<br>'+
+    '<strong>類型</strong>　'+p.defectType+'<br>'+
+    '<strong>說明</strong>　'+p.desc+'<br>'+
+    '<strong>調撥單號</strong>　'+p.transferNo+'<br>'+
+    '<strong>上傳</strong>　'+mediaStr;
+  document.getElementById('form-page').style.display = 'none';
+  document.getElementById('success-page').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function resetForm(){
+  mediaFiles = []; renderMedia();
+  ['store','barcode','staff','defect-desc','transfer-no','transfer-note'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('qty').value = 1;
+  document.getElementById('report-date').value = new Date().toISOString().split('T')[0];
+  document.querySelectorAll('input[name=defect-type]').forEach(function(r){ r.checked = false; });
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 提交通報並上傳';
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('error-msg').style.display = 'none';
+  clearBarcodeMsg();
+  document.getElementById('form-page').style.display = 'block';
+  document.getElementById('success-page').style.display = 'none';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+</script>
+</body>
+</html>
